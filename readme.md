@@ -58,8 +58,8 @@
 
 ### 如何获取知识库ID
 
-![image](https://github.com/lanhaibo/feishu-doc-export/assets/84184815/ba45e7c8-ff76-4591-bda1-366f6234a6d0)
-![image](https://github.com/lanhaibo/feishu-doc-export/assets/84184815/8be655df-9168-4c2a-90d6-81dff8e1676a)
+![image](https://github.com/xhnbzdl/feishu-doc-export/assets/84184815/ba45e7c8-ff76-4591-bda1-366f6234a6d0)
+![image](https://github.com/xhnbzdl/feishu-doc-export/assets/84184815/8be655df-9168-4c2a-90d6-81dff8e1676a)
 
 ### 下载程序
 
@@ -122,7 +122,7 @@
 
 执行效果图如下：
 
-![image-20230706105636270](https://github.com/lanhaibo/feishu-doc-export/assets/84184815/aea85f4b-51bc-4e77-a047-1b52b1a75c23)
+![image-20230706105636270](https://github.com/xhnbzdl/feishu-doc-export/assets/84184815/aea85f4b-51bc-4e77-a047-1b52b1a75c23)
 
 ### 逐步执行
 
@@ -132,13 +132,13 @@
 
    `mac`可能会出现不受信任的执行程序，需要手动覆盖“隐私与安全性”设置中的设置。`linux`可通过命令行输入`./feishu-doc-export`而不带参数的方式执行
 
-   ![feishuexport\_1](https://github.com/lanhaibo/feishu-doc-export/assets/84184815/cd8b8ab1-ec46-4d19-8844-794e58c305e8)
+   ![feishuexport\_1](https://github.com/xhnbzdl/feishu-doc-export/assets/84184815/cd8b8ab1-ec46-4d19-8844-794e58c305e8)
 2. 第二步，选择知识库后自动导出
 
-   ![2](https://github.com/lanhaibo/feishu-doc-export/assets/84184815/c1a09804-1d9c-414e-94f4-9a5be7230b22)
+   ![2](https://github.com/xhnbzdl/feishu-doc-export/assets/84184815/c1a09804-1d9c-414e-94f4-9a5be7230b22)
 3. 第三步，对比飞书原文档的目录结构
 
-   ![feishu\_wiki](https://github.com/lanhaibo/feishu-doc-export/assets/84184815/ddc6f0c0-3ace-4498-8bc4-02effc5ee5ea)
+   ![feishu\_wiki](https://github.com/xhnbzdl/feishu-doc-export/assets/84184815/ddc6f0c0-3ace-4498-8bc4-02effc5ee5ea)
 
 ## 本地编译
 
@@ -358,5 +358,5 @@ cd src/feishu-doc-export
 
 **700**多个文件导出到本地总耗时**25分钟**
 
-![image](https://github.com/lanhaibo/feishu-doc-export/assets/84184815/77c97483-8c32-4de0-97d8-a0ef9211cab8)
+![image](https://github.com/xhnbzdl/feishu-doc-export/assets/84184815/77c97483-8c32-4de0-97d8-a0ef9211cab8)
 
