@@ -1,5 +1,4 @@
-﻿using Aspose.Words;
-using feishu_doc_export.Helper;
+﻿﻿using feishu_doc_export.Helper;
 using System.Text.Json;
 
 namespace feishu_doc_export
@@ -37,7 +36,7 @@ namespace feishu_doc_export
         /// <summary>
         /// 飞书支持导出的文件类型和导出格式
         /// </summary>
-        static readonly Dictionary<string, string> fileExtensionDict = new()
+        private static readonly Dictionary<string, string> fileExtensionDict = new()
         {
             {"doc","docx" },
             {"docx","docx" },
@@ -55,27 +54,6 @@ namespace feishu_doc_export
         public static bool GetFileExtension(string objType, out string fileExt)
         {
             return fileExtensionDict.TryGetValue(objType, out fileExt);
-        }
-
-        private static void InitAsposeLicense()
-        {
-            // 候选 License 文件路径：兼容 Windows（程序目录）与 Linux（/private/tmp）原约定
-            string[] candidates = new[]
-            {
-                Path.Combine(AppContext.BaseDirectory, "License.lic"),
-                Path.Combine(Directory.GetCurrentDirectory(), "License.lic"),
-                "/private/tmp/License.lic"
-            };
-
-            string licenseFile = candidates.FirstOrDefault(File.Exists);
-            if (licenseFile == null)
-            {
-                LogHelper.LogWarn("未找到 Aspose License 文件（License.lic），将以评估模式运行。");
-                return;
-            }
-
-            License license = new();
-            license.SetLicense(licenseFile);
         }
 
         /// <summary>
@@ -106,8 +84,6 @@ namespace feishu_doc_export
                     InitInteractive();
                 }
             }
-
-            InitAsposeLicense();
         }
 
         /// <summary>

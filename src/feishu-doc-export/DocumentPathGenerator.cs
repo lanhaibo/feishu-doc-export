@@ -1,10 +1,11 @@
-﻿using feishu_doc_export.Dtos;
+using feishu_doc_export.Dtos;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
+using System.IO;
 using System.Threading.Tasks;
+using feishu_doc_export.Helper;
 
 namespace feishu_doc_export
 {
@@ -34,8 +35,8 @@ namespace feishu_doc_export
 
         private static void GenerateDocumentPath(WikiNodeItemDto document, string parentFolderPath, List<WikiNodeItemDto> documents)
         {
-            // 替换文件名中的非法字符
-            string title = Regex.Replace(document.Title, @"[\\/:\*\?""<>\|]", "-");
+            // 非法字符替换 + 超长截断（前60 + ...）—— 文件夹与文件名同规则，从根上杜绝 PathTooLongException
+            string title = FileHelper.SafeName(document.Title);
             string documentFolderPath = Path.Combine(parentFolderPath, title);
 
             documentPaths[document.ObjToken] = documentFolderPath;

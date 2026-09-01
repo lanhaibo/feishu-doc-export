@@ -6,42 +6,25 @@
     <RootNamespace>feishu_doc_export</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
-	<RuntimeIdentifiers>win-x64;linux-x64;osx-x64</RuntimeIdentifiers>
-	 <!--包含所有内容以进行自解压，解决libSkiaSharp无法打包到单文件-->
-	<IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+    <RuntimeIdentifiers>win-x64;linux-x64;osx-x64</RuntimeIdentifiers>
+    <!--版本号：每发 Release 必升级（SemVer：MAJOR.MINOR.PATCH），
+        会同时写入 AssemblyVersion / FileVersion / InformationalVersion，
+        以及 Win-x64 exe 的"文件详细信息 → 产品版本"字段。
+        变更历史见 change.log -->
+    <Version>0.1.0</Version>
   </PropertyGroup>
 
 
   <ItemGroup>
     <!--允许单元测试项目访问 internal 成员-->
     <InternalsVisibleTo Include="feishu-doc-export.Tests" />
-    <PackageReference Include="Aspose.Words" Version="21.6.0" />
+    <!--Docx → Markdown 转换（MIT 无水印，0.16.0 为最后一版支持 .NET 6）-->
+    <PackageReference Include="DocSharp.Docx" Version="0.16.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.32" />
+    <PackageReference Include="Newtonsoft.Json" Version="*" />
     <PackageReference Include="WebApiClientCore" Version="2.0.4" />
     <PackageReference Include="WebApiClientCore.Extensions.OAuths" Version="2.0.4" />
-	  <!--解决linux下Aspose.Words引用的包（SkiaSharp）不适配的问题-->
-    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" Version="2.88.3" />
   </ItemGroup>
-	
 
-  	<!--解决使用了Aspose.Words库来实现导出为md文件后，裁剪打包输出的执行程序无法正常运行的各种问题-->
-	<Target Name="ConfigureTrimming" BeforeTargets="PrepareForILLink">
-		
-		<ItemGroup>
-			<!--指定要裁剪的库-->
-			<ManagedAssemblyToLink Condition="'%(Filename)' == 'Aspose.Words.Pdf2Word'">
-				<IsTrimmable>true</IsTrimmable>
-			</ManagedAssemblyToLink>
-		</ItemGroup>
-		<!--指定不裁剪的库-->
-		<ItemGroup>
-			<TrimmerRootAssembly Include="mscorlib" />
-			<TrimmerRootAssembly Include="System.Xml" />
-			<TrimmerRootAssembly Include="System.Xml.ReaderWriter" />
-			<TrimmerRootAssembly Include="System.Private.Xml" />
-		</ItemGroup>
 
-	</Target>
-
-	
 </Project>

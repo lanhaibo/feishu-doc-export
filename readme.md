@@ -1,6 +1,6 @@
 # feishu-doc-export
 
-一个支持Windows、Mac、Linux系统的飞书文档一键导出服务，仅需一行命令即可将飞书知识库的全部文档同步到本地电脑。支持导出`markdown`，`docx`，`pdf`三种格式。导出速度嘎嘎快，实测**700**多个文档导出只需**25**分钟，且程序是后台挂机运行，不影响正常工作。最新版本内容，请查看文章最后的**更新日志**
+一个支持Windows、Mac、Linux系统的飞书文档一键导出服务，仅需一行命令即可将飞书知识库的全部文档同步到本地电脑。支持导出`markdown`，`docx`，`pdf`三种格式。导出速度嘎嘎快，实测**700**多个文档导出只需**25**分钟，且程序是后台挂机运行，不影响正常工作。版本更新记录见 [change.log](change.log)。
 
 ## 动机
 
@@ -58,12 +58,12 @@
 
 ### 如何获取知识库ID
 
-![image](https://github.com/xhnbzdl/feishu-doc-export/assets/84184815/ba45e7c8-ff76-4591-bda1-366f6234a6d0)
-![image](https://github.com/xhnbzdl/feishu-doc-export/assets/84184815/8be655df-9168-4c2a-90d6-81dff8e1676a)
+![image](https://github.com/lanhaibo/feishu-doc-export/assets/84184815/ba45e7c8-ff76-4591-bda1-366f6234a6d0)
+![image](https://github.com/lanhaibo/feishu-doc-export/assets/84184815/8be655df-9168-4c2a-90d6-81dff8e1676a)
 
 ### 下载程序
 
-> 下载地址：[（Releases）feishu-doc-export](https://github.com/xhnbzdl/feishu-doc-export/releases)，请选择最新版本下载
+> 下载地址：[（Releases）feishu-doc-export](https://github.com/lanhaibo/feishu-doc-export/releases)，请选择最新版本下载
 
 - windows-x64系统，下载`feishu-doc-export-win-x64.zip`
 - mac-osx-x64系统，下载`feishu-doc-export-mac-osx-x64.zip`
@@ -113,7 +113,7 @@
 
 执行效果图如下：
 
-![image-20230706105636270](https://github.com/xhnbzdl/feishu-doc-export/assets/84184815/aea85f4b-51bc-4e77-a047-1b52b1a75c23)
+![image-20230706105636270](https://github.com/lanhaibo/feishu-doc-export/assets/84184815/aea85f4b-51bc-4e77-a047-1b52b1a75c23)
 
 ### 逐步执行
 
@@ -123,13 +123,13 @@
 
    `mac`可能会出现不受信任的执行程序，需要手动覆盖“隐私与安全性”设置中的设置。`linux`则只能通过命令行输入`.\feishu-doc-export`而不带参数的方式执行
 
-   ![feishuexport\_1](https://github.com/xhnbzdl/feishu-doc-export/assets/84184815/cd8b8ab1-ec46-4d19-8844-794e58c305e8)
+   ![feishuexport\_1](https://github.com/lanhaibo/feishu-doc-export/assets/84184815/cd8b8ab1-ec46-4d19-8844-794e58c305e8)
 2. 第二步，选择知识库后自动导出
 
-   ![2](https://github.com/xhnbzdl/feishu-doc-export/assets/84184815/c1a09804-1d9c-414e-94f4-9a5be7230b22)
+   ![2](https://github.com/lanhaibo/feishu-doc-export/assets/84184815/c1a09804-1d9c-414e-94f4-9a5be7230b22)
 3. 第三步，对比飞书原文档的目录结构
 
-   ![feishu\_wiki](https://github.com/xhnbzdl/feishu-doc-export/assets/84184815/ddc6f0c0-3ace-4498-8bc4-02effc5ee5ea)
+   ![feishu\_wiki](https://github.com/lanhaibo/feishu-doc-export/assets/84184815/ddc6f0c0-3ace-4498-8bc4-02effc5ee5ea)
 
 ## 本地编译
 
@@ -194,7 +194,7 @@ dotnet test .\feishu-doc-export.Tests\feishu-doc-export.Tests.csproj --no-restor
 
 ### 新增用例约定
 
-- 纯逻辑优先直测（字符串变换、路径计算、配置合并）；飞书 API 调用与 Aspose 转换不做单测（依赖外部服务，属集成测试范畴）
+- 纯逻辑优先直测（字符串变换、路径计算、配置合并）；飞书 API 调用与 DOCX→MD 转换不做单测（依赖外部服务，属集成测试范畴）
 - 涉及 `GlobalConfig` 静态状态的用例，需在用例内先重置状态（参考 `GlobalConfigMergeTests.ResetGlobalConfig`），避免用例间污染
 - 共享静态状态的测试类必须归入同一 collection 并禁并行（参考 `DocumentPathGeneratorSequentialCollection`），否则 xUnit 跨类并行会引发用例间竞争
 - 访问主项目 `internal` 成员已通过 `InternalsVisibleTo` 授权，新增 internal 成员无需额外配置
@@ -237,7 +237,7 @@ start .\feishu-doc-export.Tests\coveragereport\index.html
 | `CloudDocPathGenerator`（云文档路径映射） | 100% |
 | `GlobalConfig`（配置合并） | 34.3% |
 
-> 说明：整体 19% 偏低属预期——`Program` 主流程、`FeiShuHttpApiCaller`（飞书 API）、Aspose 转换均依赖外部服务，不在单测范围（靠真实导出集成验证）；`Dtos` 多为属性容器。评估单测价值应看核心逻辑类，不看整体数字。
+> 说明：整体 19% 偏低属预期——`Program` 主流程、`FeiShuHttpApiCaller`（飞书 API）、DOCX→MD 转换均依赖外部服务，不在单测范围（靠真实导出集成验证）；`Dtos` 多为属性容器。评估单测价值应看核心逻辑类，不看整体数字。
 
 覆盖率产物（`TestResults/`、`coveragereport/`）已加入 `.gitignore`，不入库。
 
@@ -331,72 +331,23 @@ cd src/feishu-doc-export
 ## 使用注意事项
 
 1. **飞书权限生效流程**（缺一步会返回 99991672 权限错误）：权限管理开通权限（如 `drive:export:readonly`）→ 版本管理与发布创建版本并提交发布 → 企业管理员审批通过 → 在飞书客户端将应用机器人添加为知识库成员（管理员或编辑）
-2. **Aspose License**：程序按「exe 所在目录 → 当前目录」顺序查找 `License.lic`，找不到则以评估模式运行（转 md 可能受限）。放好 License 文件后无需改代码
-3. **导出失败类型**：部分飞书文档类型不支持 API 导出；文件名超 64 字符的文档会被跳过。两类失败均会列在日志末尾的失败清单中，需手动在飞书客户端下载
+2. **DOCX→Markdown 转换引擎**：当前使用 **DocSharp.Docx 0.16.0**（MIT 协议，**无水印**、无 License 文件要求、最后一版支持 .NET 6）。支持简单二维表格（GFM Markdown 语法）；代码块直接输出 ``` 围栏格式。无需额外配置，零成本使用。替换前使用的 Aspose.Words（评估版会加页眉/页脚水印、截断长文档）已在 2026-09-01 版本移除，历史记录见 [change.log](change.log)
+   > **⚠ md 表格能力说明（重要）**：DocSharp 只生成 GFM 语法的简单二维表，**不支持合并单元格（`rowspan` / `colspan`）、嵌套表格、单元格内换行/复杂排版**；也不会像商业组件那样降级为 Raw HTML `<table colspan=...>` 兜底。若你的飞书文档里存在「表头跨列 / 行跨区 / 子表格」，导出后的 md 会出现列数对不齐、合并内容丢失、跨区被平铺等情况。**建议**：① 日常知识库（培训/操作手册/FAQ，表格基本都是简单二维）不受影响，正常使用 md；② 若有大量复杂表格，可临时把 `--saveType` 切到 `docx` / `pdf`，保留 Word/PDF 的原貌；③ 未来如升级到 .NET 8+，可升级 DocSharp 到最新版以获得表格增强。
+3. **导出失败类型**：两类失败都会在日志末尾统一列出「以下是所有无法导出的文档」清单：
+   - **文件类型不支持 API 导出**（如飞书「AI Coding 培训」等特定格式文档，`objType` 不在 allow-list 中）：请在飞书客户端手动下载
+   - ~~**文件名超出 64 字符**（已修复）~~：2026-09-01 起，文件名 / 文件夹名**单组件超过 60 字符时会自动按「前 60 字符 + `...`」截断落盘**，并在控制台输出带原始字符数的提示信息「文件名超长（N > 60），已自动截断为【XX...md】继续导出」——导出**不会再因文件名过长失败**。若截断后与同目录其他文件发生重名，会自动追加 `_1`/`_2`/… 后缀，避免互相覆盖（该保护也对 docx/pdf 直接导出、SaveToMarkdownFile 产物生效）。飞书标题的非法字符 `\/:*?"<>|` 会统一替换为 `-`
 4. **`--quit`** **参数**：追加后导出完成自动退出，适合脚本/无人值守（run.ps1 已默认携带）
 5. **日志**：程序控制台输出已设 UTF-8，重定向到文件中文不乱码；run.ps1 运行日志在 `src/feishu-doc-export/run.log`（已被 gitignore）
+6. **NuGet 包源**：当前机器默认 NuGet 无配置，在本机执行 `dotnet restore`/`publish`/`test` 必须追加 `--source https://api.nuget.org/v3/index.json`
+7. **HTML 导出报告**：每次导出结束自动在 `--exportPath` 根目录生成 `export-report-yyyyMMdd-HHmmss.html`，列出每个文档的 🟢 成功 / 🔴 失败（含失败原因枚举）/ 🟠 自动调整（超长文件名截断 / 截断后同名追加 `_N` 尾号）明细，以及 KPI 4 宫格、状态分布条、目录分布卡、可搜索 / 筛选的 200+ md 明细表、开始/结束/耗时、总产物大小、md / 图片数量。**CSS + JS 全部内联，零 CDN、零联网依赖**，直接双击 HTML 即可离线查看。
 
 ## 个人空间文档导出
 
-操作步骤请参考**更新日志**[feishu-doc-export-v 0.0.4](https://github.com/xhnbzdl/feishu-doc-export/releases/tag/0.0.4)&#x20;
+操作步骤请参考 [change.log](change.log) 中 v0.0.4 版本记录。
 
 ## 耗时测试
 
 **700**多个文件导出到本地总耗时**25分钟**
 
-![image](https://github.com/xhnbzdl/feishu-doc-export/assets/84184815/77c97483-8c32-4de0-97d8-a0ef9211cab8)
-
-## 更新日志
-
-### 2023-7-15发布[feishu-doc-export-v 0.0.3](https://github.com/xhnbzdl/feishu-doc-export/releases/tag/0.0.3)&#x20;
-
-- 这个版本新增了两种格式的导出，可支持将飞书文档导出为`markdown`和`pdf`，加上原有支持的`docx`一共是三种格式。
-- 新增了命令行参数`--saveType`，文档保存的格式类型，可选值有`md`，`pdf`，`docx`，如果参数不传，或值为空，或值为不存在的格式，则默认导出为`docx`。使用方式如下：
-  ```shell
-  # win 不指定知识库 将文档保存为markdown文档
-  ./feishu-doc-export.exe --appId=xxx --appSecret=xxx --saveType=md --exportPath=E:\temp\test
-
-  # mac 不指定知识库 将文档保存为pdf
-  sudo ./feishu-doc-export --appId=xxx --appSecret=xxx  --exportPath=/home/feishu-document --saveType=pdf
-
-  # linux 不指定知识库 将文档保存为docx
-  sudo ./feishu-doc-export --appId=xxx --appSecret=xxx  --exportPath=/home/feishu-document 
-  sudo ./feishu-doc-export --appId=xxx --appSecret=xxx  --exportPath=/home/feishu-document --saveType=
-  sudo ./feishu-doc-export --appId=xxx --appSecret=xxx  --exportPath=/home/feishu-document --saveType=docx
-  sudo ./feishu-doc-export --appId=xxx --appSecret=xxx  --exportPath=/home/feishu-document --saveType=abcdefg
-  ```
-- 耗时测试
-  - 导出为`docx`最快
-  - 导出为`markdown`和`docx`的速度差不多
-  - 导出为`pdf`速度最慢，因为`pdf`的图片是内嵌的
-  - 实际速度与网速和飞书服务器响应，电脑磁盘写入速度都有关系
-- 注意事项：
-  1. 文档导出为`markdown`时，存在文档格式丢失的问题，原因是因为我的实现方式是利用飞书自提供的接口先将文档下载为`docx`，然后再将`docx`转为`markdown`，文档下载为`docx`后就已经存在格式丢失的问题了，所以不能很好的转换为`markdown`。而上面提到的两个开源库都是自己做的处理，它们都是直接将飞书原始数据转换为`markdown`语法的。`feishu-backup`是作者自己对飞书原始数据做的转换（牛逼），`feishu2md`则是用了一个针对飞书数据转换的库。
-  2. `feishu-doc-export`目前已发现`docx`转为`markdown`丢失的格式有：引用语法、表格、行内代码块
-  3. 对于飞书文档中引用的其他文档，如果引用的文档是当前知识库的文档，则该文档下载到本地后会以相对路径引用另一个文档，因为另一个文档也会下载到本地。
-
-     如果引用的文档是其他知识库或者是外链，则当前文档下载后还是以原文方式引用。
-- 导出的效果图展示，由于图片大小原因请移步[效果图查看链接](https://www.cnblogs.com/hyx1229/p/17533325.html#%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)
-
-### 2023-9-27发布[feishu-doc-export-v 0.0.4](https://github.com/xhnbzdl/feishu-doc-export/releases/tag/0.0.4)&#x20;
-
-- 支持导出知识库内的文件类型文档，如：pdf、image等。
-- 支持个人空间云文档导出（需要指定文件夹的Token）
-- 优化了程序异常处理，保证下载尽可能不中断
-- 新增了命令行参数`--type`和`--folderToken`，选择导出知识库或个人空间云文档，可选值：`cloudDoc`、`wiki`，为空则默认为`wiki`。当`type=cloudDoc`时，需要填写`--folderToken`参数，`type=wiki`或空，则不需要填写。使用方式如下：
-  ```powershell
-  # win 导出个人空间文档 将文档保存为markdown文档
-  ./feishu-doc-export.exe --appId=xxx --appSecret=xxx --saveType=md --exportPath=E:\temp\test --type=cloudDoc --folderToken=xxx
-  ```
-- 如何导出个人空间的文档
-  1. 将要导出的文件夹分享给自建应用，让自建应用拥有可导出文档的权限。
-  ![image-20230927162804954](https://github.com/xhnbzdl/feishu-doc-export/assets/84184815/668c5d5a-9b6e-4410-9511-a5027167eb6b)
-  1. 获取`folderToken`：
-  ![image-20230927161804968](https://github.com/xhnbzdl/feishu-doc-export/assets/84184815/b094b108-7ff4-4b2f-860a-b5b8298b1e15)
-  1. 执行命令：
-
-     ![image-20230927163239528](https://github.com/xhnbzdl/feishu-doc-export/assets/84184815/1d049f23-ad39-4260-a8fe-e4214b87c953)
-- 为什么不支持列举文件夹列表？
-
-  因为飞书对于个人空间做了登录限制，未登录情况下个人空间相关的部分`API`无法直接调用。而要支持登录，飞书只提供了网页端和小程序的接入方案，因此该项目不支持。
+![image](https://github.com/lanhaibo/feishu-doc-export/assets/84184815/77c97483-8c32-4de0-97d8-a0ef9211cab8)
 

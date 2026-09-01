@@ -399,6 +399,8 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 /src/feishu-doc-export/dist/*
+# 项目根目录下的 publish 产物（dotnet publish -o dist/ 输出）
+/dist/
 
 # Local credentials & export outputs (do not commit)
 credentials.local.json

@@ -1,9 +1,10 @@
-﻿using feishu_doc_export.Dtos;
+using feishu_doc_export.Dtos;
+using feishu_doc_export.Helper;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace feishu_doc_export
@@ -31,8 +32,8 @@ namespace feishu_doc_export
 
         private static void GenerateDocumentPath(CloudDocDto document, string parentFolderPath, List<CloudDocDto> documents)
         {
-            // 替换文件名中的非法字符
-            string name = Regex.Replace(document.Name, @"[\\/:\*\?""<>\|]", "-");
+            // 非法字符替换 + 超长截断（前60 + ...）—— 文件夹与文件名同规则，从根上杜绝 PathTooLongException
+            string name = FileHelper.SafeName(document.Name);
             string documentFolderPath = Path.Combine(parentFolderPath, name);
 
             documentPaths[document.Token] = documentFolderPath;

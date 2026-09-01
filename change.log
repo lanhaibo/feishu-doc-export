@@ -1,5 +1,187 @@
 # 更新日志（change.log）
 
+## 2026-09-01 v0.1.0
+
+发布地址：[feishu-doc-export v0.1.0](https://github.com/lanhaibo/feishu-doc-export/releases/tag/0.1.0)（上传 `feishu-doc-export-win-x64.zip` 后，tag 打 `0.1.0` 即出现）
+
+> 本次是 v0.0.4（2023-09）时隔近三年后的**首个大版本更新**，4 项核心改动，**强烈建议升级**：Aspose.Words（评估版有水印/截断）彻底替换为 DocSharp.Docx（MIT 无水印）、文件名超长不再失败、14 处失败结构化采集 + 每次导出自动生成离线 HTML 报告。
+>
+> 📦 发布产物（自包含单文件 + 裁剪）：本版本 win-x64 自包含单文件裁剪发布 `dotnet publish -r win-x64 -p:PublishSingleFile=true -p:PublishTrimmed=true` 实测为 **26.1 MB / 2 个文件**（`feishu-doc-export.exe` + `.pdb`），压成 zip 后 **10.2 MB / 1 个文件**（`feishu-doc-export-win-x64.zip`，10,744,011 字节）。
+>
+> ⚠ 对比口径说明：v0.0.4 的发布规格是 ~30 MB / 60+ 文件（自包含但非单文件、非裁剪，Aspose 带 SkiaSharp 等图形组件），**两者打包策略不同**——Aspose→DocSharp 的真实代码瘦身收益约 **发布 DLL 数减少一半左右**；但为了获得"一个 exe 直接跑"的用户体验，本版本改用 PublishSingleFile + PublishTrimmed，体积下降主要来自这两项打包策略。
+
+### 四项核心改动一览
+
+1. **DOCX → MD 转换引擎全量替换**：Aspose.Words（评估版，注入页眉/页脚水印并在长文档末尾截断）→ **DocSharp.Docx 0.16.0**（MIT 协议，零水印、零 License 要求、最后一版支持 .NET 6）。205 md 文档实测 `aspose` 关键词 **0 处命中**，表格（11 份简单二维表）全部 GFM 对齐。详情见下方同日「Aspose.Words → DocSharp.Docx」专题。
+2. **文件名 / 文件夹名超长不再导致导出失败**（原 64 字符硬上限 → 现在自动修复）：
+   - `FileHelper.SafeName(name)` 统一处理：非法字符 `\/:*?"<>|` 替换为 `-` + 单组件名 **>60 字符自动取前 60 + `...`**（留余给扩展名 + `_N` 去重尾号，避免叠加超限）。从 `DocumentPathGenerator` 和 `CloudDocPathGenerator` 的路径生成最源头应用，知识库**文件夹和文件同时受益**。
+   - `FileHelper.DeduplicateOnExist(filePath)` 为 Save 扩展加**后兜底**：SafeName 截断后若出现前 60 字符相同的极端情况，循环追加 `_1`/`_2`/… 直到不冲突，绝不互相覆盖。FileHelper 新增 `Deduplicated` 事件供上层采集（本版本 HTML 报告用）。
+   - 效果：原真实导出失败的 2 个超长标题文档（Codex CLI 启动报错，标题 ~105 字符）→ **完整导出**。
+3. **每次导出结束自动生成离线 HTML 报告**（**零新增 NuGet、零 CDN 依赖**，CSS/JS 全内联，双击即可打开）：
+   - 落点：`<ExportPath>/export-report-yyyyMMdd-HHmmss.html`（与导出产物同级，时间戳按本地时区）。
+   - 8 大区块：Banner（知识库中文名 / 导出格式 / 环境 + 开始/结束/耗时 pill）→ KPI 4 宫格（总大小 / md 数 / 失败数 / 调整数 / 文件总数 / 图片数）→ 状态分布 3 色条（OK 绿 / FAIL 红 / ADJUST 橙 + 百分比）→ 失败清单（按 FailureKind 枚举分类 + 失败原因详情 + 排故建议 + 三态徽标）→ 自动处理清单（超长文件名截断 / 同名 _N 去重 双子表）→ 目录分布卡（按 ParentFolder 聚合 md 数/文件数/大小，JS 动态渲染）→ 200+ md 明细表（工具栏搜索框 + 状态下拉筛选 + sticky thead + 数字对齐大小列）→ 控制台友好打印「报告路径 / 大小 / 离线双击可开」。
+   - 配套加固：原 Program 中 **12 处** TypeNotSupported 清单采集 → 扩展为 14 处（新增 DownLoadDocument 内部两个原本**只打日志不进失败清单**的静默点：CreateExportTask 返回 null / JobErrorMsg != "success" 现在也写入 failures）。
+4. **体验优化**：报告顶部 Banner「知识库名」由显示 SpaceId / FolderToken 改为显示飞书请求返回的**中文名**（`wikiSpaceInfo.Space.Name` / `folderMeta.Name`），任何取不到的场景都会自动回退到 token → 再到"知识库"/"个人空间云文档"兜底，永不空白。
+
+### 发布质量门禁（均通过）
+
+| 门禁项 | 结果 |
+|---|---|
+| Release 编译（`TreatWarningsAsErrors=true`，WarningLevel=4） | ✅ 0 警告 0 错误 |
+| xUnit 单元测试（Release 配置） | ✅ **56/56 全绿**（单轮 ~750ms；新增 `FileHelperTests` 14 用例 + `ExportReportGeneratorTests` 5 场景） |
+| HTML 导出报告：空模型 / 失败+调整 / 三态 CSS 类 / 默认文件名时间戳 / 目录名 HTML+JSON 注入安全 | ✅ 全部通过 |
+| 真实知识库真跑验收（SpaceId 已脱敏，205 md / 213 图片 / 33.33 MB） | ✅ 与 Aspose 基线 md 数一致；0 处 Aspose 水印 |
+
+### 上传到 GitHub Release 的 4 步操作（lanhaibo/feishu-doc-export 仓库）
+
+本项目远端为 `https://github.com/lanhaibo/feishu-doc-export.git`（已通过 `git remote -v` 核对），**不需要原作者 xhnbzdl 仓库的任何权限**，在你自己的 fork 里发就好。
+
+#### Step 0：发布前本地自检（必做，否则发了坏包只能重新打 0.1.1）
+
+在 PowerShell 里跑（不要省 — 用 `--source` 因为本机 NuGet 无默认源）：
+
+```powershell
+Set-Location E:\AIworkspace\feishu-doc-export
+# (1) Release 编译，所有警告当错误，任何警告都过不了
+dotnet build src/feishu-doc-export.Tests/feishu-doc-export.Tests.csproj `
+  -c Release --no-restore -v minimal `
+  /p:WarningLevel=4 /p:TreatWarningsAsErrors=true
+# 预期输出: 已成功生成。0 个警告   0 个错误
+
+# (2) 全量单元测试：必须 56/56 全绿
+dotnet test src/feishu-doc-export.Tests/feishu-doc-export.Tests.csproj `
+  -c Release --no-build -v minimal
+# 预期输出: 已通过! - 失败: 0，通过: 56，已跳过: 0，总计: 56
+
+# (3) 确认 exe 版本号是目标版本
+$v = [System.Diagnostics.FileVersionInfo]::GetVersionInfo(
+  "src\feishu-doc-export\dist\win-x64\feishu-doc-export.exe")
+Write-Host ("ProductVersion = {0}, expect = 0.1.0" -f $v.ProductVersion)
+# 期望打印: ProductVersion = 0.1.0, expect = 0.1.0
+
+# (4) 发布包 zip 路径 & 大小
+$z = Get-Item "src\feishu-doc-export\dist\feishu-doc-export-win-x64.zip"
+Write-Host ("zip = {0} ;  size = {1} bytes ({2} MB)" -f $z.FullName, $z.Length, [Math]::Round($z.Length/1MB,3))
+# 本次实测: 10,744,011 bytes ≈ 10.246 MB
+```
+
+> 若 (1)(2) 任何一步非绿：**不要发 Release**，先修代码并重新 `dotnet publish` 生成新 zip；若 (3) 版本号不对：回去改 `src/feishu-doc-export/feishu-doc-export.csproj` 里的 `<Version>` 再跑 build + publish。
+
+#### Step 1-4：代码 → GitHub 发布网页 → 上传附件
+
+1. **提交 & 推送代码**：`git add` 本版本所有修改（csproj `<Version>`、change.log 新条目、readme 说明、Program.cs / Helper/FileHelper.cs / ExportReportGenerator.cs、以及两个新测试文件 `FileHelperTests.cs` / `ExportReportGeneratorTests.cs` 等）→ `git commit -m "release: v0.1.0"` → `git push origin main`。
+   - ⚠ **先别提交**：还没 add 的话，下面 4 个临时文件（模板阶段产物，**不入库**）记得排除：
+     ```
+     build_report_template.ps1
+     report_assets.json
+     export_report_template.html
+     export_full.err
+     ```
+2. **打 tag 并推送**（可选，也可以在 GitHub 网页 Draft Release 时直接创建）：
+   ```powershell
+   git tag 0.1.0
+   git push origin 0.1.0
+   ```
+   > ⚠ tag 一旦 push 后**不要改提交再重打同名 tag**（会出现本地/远端 tag 指向不同 commit 的发布不一致，经验：真要改请打 `0.1.1` 新版本号）。
+3. **进你自己仓库的 Release 页面**：<https://github.com/lanhaibo/feishu-doc-export/releases> → 点 **Draft a new release**。
+   - **Choose a tag**：选 `0.1.0`（第 2 步没打的话，这里点 Create new tag on publish 也行，名字必须写 `0.1.0`，不要写 `v0.1.0` — 否则 change.log 里 `releases/tag/0.1.0` 这条链接会 404）。
+   - **Target**：`main`（默认即可，和你 Step 1 push 的 commit 对齐）。
+   - **Set as the latest release**：保持勾选（这样用户在 Release 页看到的默认最新版就是 0.1.0）。
+   - **This is a pre-release**：**不要勾**（本版本是正式发布，单测 56 全绿 + 真跑 418 文件验收通过）。
+   - **Release title**：建议 `v0.1.0 — 无水印 DocSharp 引擎 + 超长文件名修复 + HTML 导出报告`。
+   - **Describe this release**：直接把本 change.log 上面「四项核心改动一览」+「发布质量门禁」两小节粘过来，或写你自己的总结。
+4. **上传发布包**：把 Step 0 第 (4) 条打印的那个 zip `E:\AIworkspace\feishu-doc-export\src\feishu-doc-export\dist\feishu-doc-export-win-x64.zip`（**≈10.2 MB**）拖拽到附件区。**校验一下网页显示的文件名**：应该是 `feishu-doc-export-win-x64.zip`（和 readme 里的旧版本命名一致，老用户看到相同格式更顺手）。确认无误后点 **Publish release** → 完成。
+
+发布完后回到本条目第 5 行的「发布地址」链接 <https://github.com/lanhaibo/feishu-doc-export/releases/tag/0.1.0>，就是你的 v0.1.0 下载页。如果用户反馈"下载链接 404"，99% 的原因是第 3 步把 tag 写成了 `v0.1.0`（多了一个 `v` 前缀）——把那个 tag 删了重建为 `0.1.0` 就会恢复。
+
+---
+
+## 2026-09-01 DOCX→MD 转换引擎替换：Aspose.Words（评估版，有水印）→ DocSharp.Docx（MIT，无水印）
+
+### 动机
+
+- 评估版 Aspose.Words 在转 md 输出中注入三类水印：
+  1. 顶部页眉：`Evaluation Only. Created with Aspose.Words.Copyright 2002-2021 Aspose Pty Ltd.`
+  2. 底部页脚：`Created with an evaluation copy of Aspose.Words...To discover the full versions of our APIs...`
+  3. 长文档末尾截断：`This document was truncated here because it was created in the Evaluation Mode.`
+- 上述水印严重影响 md 可读性与二次使用（截断会丢失内容）。评估版无合法绕开方式，Aspose 商业 License 成本较高，因此替换为开源实现。
+
+### 选型
+
+| 候选 | 协议 | .NET 6 | 复杂表格 | 决策 |
+|---|---|---|---|---|
+| DocSharp.Docx 0.16.0 | MIT | ✅（最后一版支持 net6.0） | 仅 GFM（不支持 rowspan/colspan） | ✅ 选用 |
+| Aspose.Words 21.6.0（商业） | 付费 | ✅ | 最强（Raw HTML 降级） | ❌ 有水印 |
+| 手写 DocumentFormat.OpenXml → Markdown | MIT | ✅ | 自己实现 | ❌ 工作量大，易出格式 Bug |
+
+> 注：DocSharp.Docx 0.16.0 是该库最后一版支持 `net6.0`；0.17.0 起要求 net8.0+（因项目目标框架是 net6.0，锁定在 0.16.0）。
+
+### 源码变更（5 处）
+
+- **csproj 依赖清理**（`feishu-doc-export.csproj`）
+  - 删除：`Aspose.Words 21.6.0`（商业评估版）、`SkiaSharp.NativeAssets.Linux.NoDependencies 2.88.3`（Aspose 引入的跨平台图形依赖）
+  - 删除：整段 `<Target Name="ConfigureTrimming">`（共 18 行，为解决 Aspose 单文件裁剪时组件丢失而加的 ILLink 规则）
+  - 删除：`<IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>`（SkiaSharp 自解压要求，现不再需要）
+  - 新增：`DocSharp.Docx 0.16.0`（docx→md 转换引擎，MIT）
+  - 新增：`Newtonsoft.Json`（原由 Aspose.Words 传递依赖带入，现显式引用）
+  - 效果：publish 产物从 ~30MB / 60+ 文件 缩减为 9.5MB / 29 文件
+- **删除 Aspose License 框架**（`GlobalConfig.cs`）
+  - 删 `using Aspose.Words;` 引用
+  - 删 `InitAsposeLicense()` 方法（原在 exe 目录 / CWD / `/private/tmp` 三路搜索 `License.lic`，找不到时打印警告）
+  - 删 `Init()` 方法末尾的 `InitAsposeLicense()` 调用点
+  - 现在启动不再打印「未找到 Aspose License 文件，将以评估模式运行」警告
+- **DOCX→MD 转换重写**（`Program.cs` `SaveToMarkdownFile` 方法，约 30 行）
+  - 顶部 usings：`Aspose.Words` / `Drawing` / `Saving` → `DocSharp.Docx`
+  - 原 Aspose 链路：`new Document(stream)` → `foreach (Shape ...) { clear AlternativeText }` → `MarkdownSaveOptions { ImagesFolder = ... }` → `doc.Save(mdFileSavePath, saveOptions)`
+  - 新 DocSharp 链路：`new DocxToMarkdownConverter { ImagesOutputFolder = imagesFolder, ImagesBaseUriOverride = "./images" }` → `converter.Convert(stream, mdFileSavePath)`
+  - 后处理链路（`.ReplaceImagePath().ReplaceDocRefPath().ReplaceCodeToMdFormat()`）保持不变
+- **.gitignore 修复**（上库验证发现）
+  - 原只忽略 `/src/feishu-doc-export/dist/*`，现在 publish 默认落到项目根 `dist/`，追加 `/dist/` 规则
+- **文档更新**：`change.log`（本条）、`readme.md`（使用注意事项、依赖说明）
+- **修复：文件名/文件夹名超长导致导出失败（64 字符硬上限）**
+  - 根因分析：用户方案原本「Program.cs 在导出前判断 `item.Name.Length > 64` 再截断」——但实际落盘路径来自 `DocumentPathGenerator.GenerateDocumentPaths` 初始化时写入的静态字典，那一步不受 `Program.cs` 里 guard 控制，**即便调用点放行，真正写盘时仍会因原标题超长而 PathTooLongException**；同时原代码用 `PadLeft(61)` 语义错误（字符串超 61 时 PadLeft 原样返回，根本不截断，打印出来的 left64FileName 仍超过 100 字符）
+  - 正确修复（4 个文件）：
+    1. **FileHelper.cs** 新增两个纯静态工具：
+       - `FileHelper.SafeName(name)`：非法字符统一替换为 `-` + **单组件名 >60 字符取前 60 + 省略号 `...`**（留余 3 字符给 `...`、4-5 字符给扩展名、4+ 字符给 `_1/_2` 去重尾号，避免叠加超限）
+       - `FileHelper.DeduplicateOnExist(filePath)`：目标文件已存在则循环追加 `_1`/`_2`/... 直到不冲突
+       - `Save(byte[])` / `Save(string)` 两个扩展方法内部先跑一次 `DeduplicateOnExist`，**彻底防止 SafeName 截断后重名覆盖**（例如两个 100 字符的文档标题前 60 字符完全相同的极端情况）
+    2. **DocumentPathGenerator.cs**：`GenerateDocumentPath` 原写法 `Regex.Replace(document.Title, @"[\\/:*?""<>|]", "-")` → 改为 `FileHelper.SafeName(document.Title)`，**从路径生成的最源头同时应用非法字符替换和超长截断**，知识库文件与文件夹同时受益
+    3. **CloudDocPathGenerator.cs**：同样改 `document.Name` 用 `FileHelper.SafeName`，云文档链路同步消除该类 bug
+    4. **Program.cs**：两处「`Length > 64` → `continue`」改为仅打**提示日志（不中断）**——`文件【原名.扩展名】文件名超长（N > 60），已自动截断为【SafeName.扩展名】继续导出`。修复了 `PadLeft(61)` 语义 bug（PadLeft 对超长度字符串恒等于原样返回）
+  - 效果：之前真实导出失败的 2 个超长文件名文档（Codex CLI 启动报错 x2，原标题 ~105 字符）→ 现在会**自动按前 60 + 省略号落盘，md + 图片完整导出不再丢失**
+  - 单测：新增 `FileHelperTests.cs`（14 用例）覆盖 SafeName 空值/非法字符/60 临界/61 触发省略号/超长标题带非法字符/冒号替换 + DeduplicateOnExist 三种存在情况 + Save 两重载去重落盘验证。xUnit 总数从 37 → 51，全部通过
+
+### 验证结果
+
+在 AI 知识库（spaceId 已脱敏）上进行完整真实验收，与替换前的 Aspose.Words 基线对比：
+
+| 指标 | DocSharp.Docx 0.16.0（新） | Aspose.Words 21.6.0 评估版（基线） |
+|---|---|---|
+| 总文档数 | 205 | 205 |
+| 成功 md 数 | 205 | 205 |
+| 失败数 | 8（6 个 AI Coding 培训 + 2 个文件名超长） | 8（同左，完全一致） |
+| 图片文件数 | 213（212 png + 1 gif） | 670（混合 docx/pdf/md 口径） |
+| 总文件数 | 418 | 875 |
+| 总大小 | 33.3MB | 56.5MB |
+| 总耗时 | 638.6s（约 +6.8%） | 598s |
+| Aspose 水印（页眉/页脚/截断） | **0 处命中（全 205 文件扫描）** | 每页均有（长文档额外截断） |
+| aspose 关键词（大小写不敏感） | **0 处命中** | / |
+| 含表格 md 渲染 | 11 个文件全通过 GFM 语法检查（3 列表头/分隔/数据结构齐全；8 列表无 rowspan 正确对齐） | 略优（Raw HTML 兜底复杂表格） |
+| 代码块围栏（```） | 100 个文件共 5390 处命中，DocSharp 直接原生输出围栏 | 输出为等宽字体表格，靠 `ReplaceCodeToMdFormat` 正则还原围栏 |
+
+### 已知差异与后续建议
+
+1. **复杂表格（合并单元格/嵌套表格）**：DocSharp 只会生成 GFM 表格，不支持 `<table colspan/rowspan>` Raw HTML 降级兜底。当前知识库表格全是简单二维（单元格里是指令文本），不受影响；未来若引入含合并单元格的文档，可能需考虑切换回商业 Aspose 或补充 Raw HTML 后处理。
+2. **代码块后处理**：原 `ReplaceCodeToMdFormat` 正则（`\|(?<content>[^\n]+)\n\|\s*:\s*-\s*\|`）是针对 Aspose 等宽字体→表格的写法。DocSharp 直接输出标准 ``` 围栏代码块，该后处理对 DocSharp 产物永远不命中（等于空转，无副作用）。为兼容未来换回 Aspose 或处理用户直接粘贴的 docx，暂未删除该方法。
+3. **.NET 6 版本锁定**：DocSharp.Docx 锁定在 0.16.0。若项目未来升级到 .NET 8+，建议升到最新版 DocSharp（以获得 bug 修复与表格增强）。
+
+- **新增：每次导出结束自动生成 HTML 报告**
+  - 报告落点：`<GlobalConfig.ExportPath>/export-report-yyyyMMdd-HHmmss.html`（与导出产物同级，时间戳按本地时区）
+  - 实现约束：零新增 NuGet；全部 CSS / JS **内联**（不访问任何 CDN）；序列化使用 .NET 6 自带 `System.Text.Json`，**离线双击即可打开**
+  - 8 大区块：① Banner（知识库名/导出格式/环境 + 开始/结束/耗时 pill）② KPI 4 宫格（总大小/md 数/失败数/调整数/文件总数/图片数）③ 状态分布 3 色条（OK 绿 / FAIL 红 / ADJUST 橙 + 图例百分比）④ 硬失败清单（按 FailureKind 分类 + 原因详情 + 排故建议 + 三态徽标）⑤ 自动处理清单（文件名超长截断表 / SafeName 后同名 _N 去重表 双子表）⑥ 目录分布卡（按 ParentFolder 聚合的 md 数 + 文件数 + 大小 JS 动态渲染）⑦ 200+ md 明细表（工具栏搜索框 + 状态筛选 + sticky thead + 数字对齐大小列）⑧ 控制台友好打印（报告路径/大小）
+  - 源码新增：`ExportReportGenerator.cs`（静态生成器 + FailureKind 枚举 + ReportModel 等 4 个 POCO）；`FileHelper.Save()` 两重载改为返回 `Task<string>`（触发 `Deduplicated` 事件以便报告采集去重明细）；`Program.cs` 共改 **14 处失败点**（原 12 处 TypeNotSupported + 2 处 DownLoadDocument 静默失败补 failures.Add），并在导出结束扫产物组装 ReportModel 后落盘
+  - 单测：`ExportReportGeneratorTests.cs` 5 场景（空模型安全 / 失败+调整混合 / 三态徽标类齐全 / 默认文件名时间戳 / 目录名 HTML+JSON 注入安全），xUnit 总数从 51 → 56，**Release build 0 警告 0 错误 + 56/56 全绿**
+
 ## 2026-08-31 Windows 运行修复与凭证管理优化
 
 ### 源码修复（5 处）
@@ -84,3 +266,64 @@ feat: 凭证配置化与错误诊断增强，新增单元测试及覆盖率基�
 - 文档：readme 补本地编译/权限清单/凭证管理/单元测试/覆盖率章节，
   新增 change.log
 ```
+
+## 2023-09-27 v0.0.4
+
+发布地址：[feishu-doc-export-v 0.0.4](https://github.com/lanhaibo/feishu-doc-export/releases/tag/0.0.4)
+
+- 支持导出知识库内的文件类型文档，如：pdf、image 等
+- 支持个人空间云文档导出（需要指定文件夹的 Token）
+- 优化了程序异常处理，保证下载尽可能不中断
+- 新增命令行参数 `--type` 和 `--folderToken`，选择导出知识库或个人空间云文档，可选值：`cloudDoc`、`wiki`，为空则默认为 `wiki`。当 `type=cloudDoc` 时，需要填写 `--folderToken` 参数，`type=wiki` 或空，则不需要填写。使用方式如下：
+  ```powershell
+  # win 导出个人空间文档 将文档保存为 markdown 文档
+  ./feishu-doc-export.exe --appId=xxx --appSecret=xxx --saveType=md --exportPath=E:\temp\test --type=cloudDoc --folderToken=xxx
+  ```
+
+### 如何导出个人空间的文档
+
+1. 将要导出的文件夹分享给自建应用，让自建应用拥有可导出文档的权限
+   ![image-20230927162804954](https://github.com/lanhaibo/feishu-doc-export/assets/84184815/668c5d5a-9b6e-4410-9511-a5027167eb6b)
+2. 获取 `folderToken`
+   ![image-20230927161804968](https://github.com/lanhaibo/feishu-doc-export/assets/84184815/b094b108-7ff4-4b2f-860a-b5b8298b1e15)
+3. 执行命令
+   ![image-20230927163239528](https://github.com/lanhaibo/feishu-doc-export/assets/84184815/1d049f23-ad39-4260-a8fe-e4214b87c953)
+
+### 为什么不支持列举文件夹列表？
+
+因为飞书对于个人空间做了登录限制，未登录情况下个人空间相关的部分 `API` 无法直接调用。而要支持登录，飞书只提供了网页端和小程序的接入方案，因此该项目不支持。
+
+## 2023-07-15 v0.0.3
+
+发布地址：[feishu-doc-export-v 0.0.3](https://github.com/lanhaibo/feishu-doc-export/releases/tag/0.0.3)
+
+- 新增两种导出格式：可支持将飞书文档导出为 `markdown` 和 `pdf`，加上原有支持的 `docx` 一共是三种格式
+- 新增命令行参数 `--saveType`，文档保存的格式类型，可选值有 `md`、`pdf`、`docx`，如果参数不传、或值为空、或值为不存在的格式，则默认导出为 `docx`。使用方式如下：
+  ```shell
+  # win 不指定知识库 将文档保存为 markdown 文档
+  ./feishu-doc-export.exe --appId=xxx --appSecret=xxx --saveType=md --exportPath=E:\temp\test
+
+  # mac 不指定知识库 将文档保存为 pdf
+  sudo ./feishu-doc-export --appId=xxx --appSecret=xxx --exportPath=/home/feishu-document --saveType=pdf
+
+  # linux 不指定知识库 将文档保存为 docx
+  sudo ./feishu-doc-export --appId=xxx --appSecret=xxx --exportPath=/home/feishu-document
+  sudo ./feishu-doc-export --appId=xxx --appSecret=xxx --exportPath=/home/feishu-document --saveType=
+  sudo ./feishu-doc-export --appId=xxx --appSecret=xxx --exportPath=/home/feishu-document --saveType=docx
+  sudo ./feishu-doc-export --appId=xxx --appSecret=xxx --exportPath=/home/feishu-document --saveType=abcdefg
+  ```
+
+### 耗时测试
+
+- 导出为 `docx` 最快
+- 导出为 `markdown` 和 `docx` 的速度差不多
+- 导出为 `pdf` 速度最慢，因为 `pdf` 的图片是内嵌的
+- 实际速度与网速、飞书服务器响应、电脑磁盘写入速度都有关系
+
+### 注意事项
+
+1. 文档导出为 `markdown` 时，存在文档格式丢失的问题——实现方式是利用飞书自提供的接口先将文档下载为 `docx`，然后再将 `docx` 转为 `markdown`，文档下载为 `docx` 后就已经存在格式丢失的问题了，所以不能很好的转换为 `markdown`。而上面提到的两个开源库都是自己做的处理，直接将飞书原始数据转换为 `markdown` 语法。`feishu-backup` 是作者自己对飞书原始数据做的转换，`feishu2md` 则是用了一个针对飞书数据转换的库
+2. `feishu-doc-export` 目前已发现 `docx` 转为 `markdown` 丢失的格式有：引用语法、表格、行内代码块
+3. 对于飞书文档中引用的其他文档：如果引用的文档是当前知识库的文档，则该文档下载到本地后会以相对路径引用另一个文档；如果引用的文档是其他知识库或者是外链，则当前文档下载后还是以原文方式引用
+
+导出效果图展示，由于图片大小原因请移步 [效果图查看链接](https://www.cnblogs.com/hyx1229/p/17533325.html#%E6%9B%B4%E6%96%B0%E6%97%A5%E5%BF%97)
