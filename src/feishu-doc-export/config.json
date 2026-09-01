@@ -1,0 +1,9 @@
+{
+  "// 说明": "运行参数模板。appId/appSecret/spaceId 留空，本地运行时通过 credentials.local.json 覆盖（该文件已 gitignore，不上库）。也可用 run.ps1 -AppId/-AppSecret/-SpaceId 参数或交互式输入。",
+  "appId": "",
+  "appSecret": "",
+  "spaceId": "",
+  "saveType": "md",
+  "exportPath": "e:/AIworkspace/feishu-doc-export/exported",
+  "quit": true
+}

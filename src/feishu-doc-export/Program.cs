@@ -1,4 +1,4 @@
-﻿
+
 using Aspose.Words;
 using Aspose.Words.Drawing;
 using Aspose.Words.Saving;
@@ -18,6 +18,9 @@ namespace feishu_doc_export
 
         static async Task Main(string[] args)
         {
+            // 设置控制台输出为 UTF-8，避免重定向到文件时中文乱码
+            Console.OutputEncoding = System.Text.Encoding.UTF8;
+
             GlobalConfig.Init(args);
 
             if (!Directory.Exists(GlobalConfig.ExportPath))
@@ -28,10 +31,10 @@ namespace feishu_doc_export
             IOC.Init();
             feiShuApiCaller = IOC.IoContainer.GetService<IFeiShuHttpApiCaller>();
 
-            Stopwatch stopwatch = new Stopwatch();
+            Stopwatch stopwatch = new();
 
             // 不支持导出的文件
-            List<string> noSupportExportFiles = new List<string>();
+            List<string> noSupportExportFiles = new();
 
             if (GlobalConfig.Type == "cloudDoc")
             {
@@ -320,7 +323,7 @@ namespace feishu_doc_export
                     exportTaskResult = await feiShuApiCaller.QueryExportTaskResult(exportTaskDto.Ticket, objToken);
                     break;
                 }
-                catch (HttpRequestException ex) when (i < maxRetryCount - 1)
+                catch (HttpRequestException) when (i < maxRetryCount - 1)
                 {
                     await Task.Delay(1000);
                 }
@@ -332,7 +335,7 @@ namespace feishu_doc_export
             {
                 var bytes = await feiShuApiCaller.DownLoad(taskInfo.FileToken);
 
-                string filePath = string.Empty;
+                string filePath;
                 if (GlobalConfig.Type == "cloudDoc")
                 {
                     filePath = CloudDocPathGenerator.GetDocumentPath(objToken) + "." + fileExtension;
@@ -349,6 +352,11 @@ namespace feishu_doc_export
                 }
 
                 await filePath.Save(bytes);
+            }
+            else
+            {
+                // 飞书导出任务未成功：打印 JobErrorMsg，避免静默跳过无任何日志
+                LogHelper.LogError($"导出任务未成功，objToken={objToken}，JobStatus={taskInfo.JobStatus}，JobErrorMsg={taskInfo.JobErrorMsg}，FileToken={taskInfo.FileToken}");
             }
         }
 
@@ -373,39 +381,36 @@ namespace feishu_doc_export
         /// <param name="fileSavePath"></param>
         static async Task SaveToMarkdownFile(byte[] bytes,string fileSavePath)
         {
-            using (MemoryStream stream = new MemoryStream(bytes))
+            using MemoryStream stream = new(bytes);
+            // 加载 Word 文档
+            Document doc = new(stream);
+
+            // 遍历文档中的所有形状（包括图片）
+            foreach (Shape shape in doc.GetChildNodes(NodeType.Shape, true).Cast<Shape>())
             {
-                // 加载 Word 文档
-                Document doc = new Document(stream);
-
-                // 遍历文档中的所有形状（包括图片）
-                foreach (Shape shape in doc.GetChildNodes(NodeType.Shape, true))
+                if (shape.HasImage)
                 {
-                    if (shape.HasImage)
-                    {
-                        // 清空图片描述
-                        shape.AlternativeText = "";
-                    }
+                    // 清空图片描述
+                    shape.AlternativeText = "";
                 }
-
-                // 创建Markdown保存选项
-                MarkdownSaveOptions saveOptions = new MarkdownSaveOptions();
-                // 文件保存的文件夹路径
-                var saveDirPath = Path.GetDirectoryName(fileSavePath);
-                // 设置文章中图片的存储路径
-                saveOptions.ImagesFolder = Path.Combine(saveDirPath, "images");
-                // 重构文件名
-                var fileName = Path.GetFileNameWithoutExtension(fileSavePath) + ".md";
-                // 文件最终的保存路径
-                var mdFileSavePath = Path.Combine(saveDirPath, fileName);
-                doc.Save(mdFileSavePath, saveOptions);
-
-                // 处理 Markdown 文件，替换图片和文档的引用路径为相对路径
-                var markdownContent = await File.ReadAllTextAsync(mdFileSavePath);
-                var replacedContent = markdownContent.ReplaceImagePath(mdFileSavePath).ReplaceDocRefPath(mdFileSavePath).ReplaceCodeToMdFormat();
-                await File.WriteAllTextAsync(mdFileSavePath, replacedContent);
             }
 
+            // 创建Markdown保存选项
+            MarkdownSaveOptions saveOptions = new();
+            // 文件保存的文件夹路径
+            var saveDirPath = Path.GetDirectoryName(fileSavePath);
+            // 设置文章中图片的存储路径
+            saveOptions.ImagesFolder = Path.Combine(saveDirPath, "images");
+            // 重构文件名
+            var fileName = Path.GetFileNameWithoutExtension(fileSavePath) + ".md";
+            // 文件最终的保存路径
+            var mdFileSavePath = Path.Combine(saveDirPath, fileName);
+            doc.Save(mdFileSavePath, saveOptions);
+
+            // 处理 Markdown 文件，替换图片和文档的引用路径为相对路径
+            var markdownContent = await File.ReadAllTextAsync(mdFileSavePath);
+            var replacedContent = markdownContent.ReplaceImagePath(mdFileSavePath).ReplaceDocRefPath(mdFileSavePath).ReplaceCodeToMdFormat();
+            await File.WriteAllTextAsync(mdFileSavePath, replacedContent);
         }
         
     }

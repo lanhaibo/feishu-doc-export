@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -13,6 +13,8 @@
 
 
   <ItemGroup>
+    <!--允许单元测试项目访问 internal 成员-->
+    <InternalsVisibleTo Include="feishu-doc-export.Tests" />
     <PackageReference Include="Aspose.Words" Version="21.6.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="3.1.32" />
     <PackageReference Include="WebApiClientCore" Version="2.0.4" />

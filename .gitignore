@@ -90,6 +90,8 @@ StyleCopReport.xml
 *.tmp_proj
 *_wpftmp.csproj
 *.log
+# 变更日志有意上库，豁免上面的 *.log 规则
+!change.log
 *.tlog
 *.vspscc
 *.vssscc
@@ -397,3 +399,16 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 /src/feishu-doc-export/dist/*
+
+# Local credentials & export outputs (do not commit)
+credentials.local.json
+exported/
+run.err
+run.log
+
+# Unit test coverage artifacts (do not commit)
+TestResults/
+coveragereport/
+
+# IDE local config (do not commit)
+.vscode/

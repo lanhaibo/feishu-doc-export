@@ -1,0 +1,86 @@
+# 更新日志（change.log）
+
+## 2026-08-31 Windows 运行修复与凭证管理优化
+
+### 源码修复（5 处）
+
+- `GlobalConfig.cs`
+  - Aspose License 路径由硬编码 `/private/tmp/License.lic`（Linux 专用，Windows 启动即抛异常）改为多候选查找：exe 目录 → 当前目录 → 原 Linux 路径；缺失时警告并以评估模式运行
+  - `--apiEndpoint` 误判为必填导致缺参即退出；且未传时判断的是 `ExportPath` 而非 `ApiEndpoint`（逻辑写反），两处已修复
+- `HttpApi/FeiShuHttpApiCaller.cs`
+  - `CreateExportTask` 对非 1069902 错误码静默 `return null`（无任何日志），改为打印飞书原始响应。此修复暴露出权限 99991672 错误，是此前"日志显示成功但仅 1 个文件落盘"的根因
+- `Program.cs`
+  - 导出任务 `JobErrorMsg != "success"` 时静默跳过，改为打印 JobStatus / JobErrorMsg
+  - Main 入口设置 `Console.OutputEncoding = UTF8`，修复重定向日志中文乱码
+
+### 凭证管理（新增）
+
+- `config.json`（上库模板）：appId / appSecret / spaceId 留空，非敏感参数（spaceId 为用户指定的敏感项）保留默认值
+- `credentials.local.json`（本地凭证，已 gitignore）：存放真实 appId / appSecret / spaceId
+- 重写 `run.ps1`：配置合并（优先级：命令行参数 > credentials.local.json > config.json > 交互式输入）、打印输出对 appSecret / spaceId 脱敏为 `****`、新增 `-DryRun` 配置校验模式、新增 `-AppId/-AppSecret/-SpaceId` 覆盖参数
+- `.gitignore` 追加：`credentials.local.json`、`exported/`、`run.err`、`run.log`
+- 凭证方案下沉到程序（`GlobalConfig.cs`）：exe 原生读取 `config.json` / `credentials.local.json`（exe 目录 → 工作目录），无参数运行且必填项齐全时跳过交互直接导出；三源合并优先级：命令行 > credentials.local.json > config.json > 交互输入；`run.ps1` 降级为可选（保留脱敏预检与日志捕获）。已验证：文件配置加载生效、命令行覆盖优先级生效
+- 权限错误自助指引（`FeiShuHttpApiCaller.cs`）：创建导出任务失败时，检测 99991672（应用权限不足）自动打印三步排查指引 + 按当前 AppId 生成的权限开通直达链接；检测 1310213 / 1254004（文档级未授权）提示「添加文档应用」操作路径
+- IDE 诊断清理（`Program.cs` / `GlobalConfig.cs`，16 条全清）：移除 CS0168 未用 catch 变量、3 条冗余 using（System.Security.Cryptography / System.Text / WebApiClientCore.Exceptions）、`fileExtensionDict` 补 readonly + target-typed new、`new License()` 简化、`Substring` 改范围运算符、`FileConfig` 属性 9 处改 PascalCase 命名（JSON 兼容靠 PropertyNameCaseInsensitive，行为不变）。编译零警告，配置加载临时验证通过
+- IDE 诊断第二轮清理（`Program.cs` 8 条 Info）：`Stopwatch`/`List`/`MarkdownSaveOptions`/`Document`/`MemoryStream` 5 处 target-typed new、`filePath` 去除多余初始化赋值、`SaveToMarkdownFile` 由 using 块改为 using 声明式、foreach Node→Shape 显式 `Cast<Shape>()`。编译零警告；真实导出验证首个 md 产物格式正常（图片引用/标题/正文完好）
+- 修复回滚补漏：上一轮并行 Edit 工具调用发生写冲突，GlobalConfig 的 2 处修改（usings 删除、fileExtensionDict readonly+new()）被覆盖回滚而未察觉；本轮串行重新应用并全量复核两文件全部修复点均在磁盘生效，编译零警告。教训：对同一文件的多处修改必须串行执行
+- 新增单元测试项目 `feishu-doc-export.Tests`（xUnit + net6.0）：37 个用例覆盖 md 后处理扩展（ReplaceImagePath/ReplaceDocRefPath/ReplaceCodeToMdFormat）、知识库/云文档目录树路径映射（含非法文件名字符清洗）、配置三源合并逻辑（FirstNonEmpty/GetCommandLineArg/ApplyFileConfig/ApplyCredentialConfig 及优先级链）。可测性重构：GlobalConfig 的 FileConfig/ApplyFileConfig/ApplyCredentialConfig/FirstNonEmpty 由 private 改 internal，主 csproj 通过 `InternalsVisibleTo` 授权测试项目，不影响运行时行为。`dotnet test` 全部通过（37/37）；`dotnet test` 需 `--no-restore` 配合先单独 restore（`dotnet test` 不支持 `--source` 开关）
+- 修复测试并发缺陷（由覆盖率收集运行暴露）：`PathGeneratorTests` 与 `DocxToMdFormatHelperTests` 跨类并行操作 `DocumentPathGenerator` 静态字典引发竞争（此前 37/37 属时序运气）；新增 `[CollectionDefinition("DocumentPathGeneratorSequential", DisableParallelization = true)]` 将共享该状态的测试类串行化，连跑 3 轮稳定通过
+- 新增代码覆盖率支持：测试项目引入 coverlet.collector 3.1.2（`dotnet test --collect:"XPlat Code Coverage"` 收集 cobertura XML），安装 ReportGenerator 5.3.8 生成 HTML 报表（快捷脚本 `src/coverage-report.ps1`）。当前基线：主程序集行覆盖率 19.0%（184/966）、分支 21.4%、方法 30.9%；核心逻辑类 DocxToMdFormatHelper / DocumentPathGenerator / CloudDocPathGenerator 均 100%，GlobalConfig 34.3%。整体数字偏低属预期（API/Aspose/Program 主流程依赖外部服务，靠集成验证）。readme.md 新增「代码覆盖率」小节；`.gitignore` 补 `TestResults/`、`coveragereport/`。踩坑：csproj XML 注释内不能含 `--`；`dotnet tool install` 用 `--add-source` 而非 `--source`
+- coverage-report.ps1 跨平台修复（3 Issue）：dotnet 路径由硬编码 `C:\Program Files\dotnet\dotnet.exe` 改为 `(Get-Command dotnet).Source`（Issue1）；测试根目录与报表输出目录由硬编码绝对路径改为 `Join-Path $PSScriptRoot 'feishu-doc-export.Tests'`（Issue2/3）；ReportGenerator 路径也改为 `(Get-Command reportgenerator).Source`；参数数组变量由 `$args` 改名 `$arguments`（PowerShell `$args` 是内置自动变量，覆盖后导致 ReportGenerator 报 "No target directory specified"）；`--source` 修正为 `--add-source`。修复后脚本在当前 Windows 上运行验证通过
+- 代码规范审查：行长 >120 全部修复（GlobalConfig.cs 2 行、GlobalConfigMergeTests.cs 5 行、DocxToMdFormatHelperTests.cs 1 行 XML 注释）；`Init()` 方法 88 行拆为 `Init`（短入口）+ `InitFromArgs`（30 行）+ `InitInteractive`（45 行），均 ≤50 行；嵌套深度误报澄清（C# namespace→class→method 三级自然缩进导致 raw indentation≥5，非逻辑嵌套）；本轮修改文件行长全部清零，上游 Program.cs / FeiShuHttpApiCaller.cs 长行属历史遗留不在本次重构范围（建议后续独立 PR）
+
+### 构建产物
+
+- 单文件发布（`PublishSingleFile=true`）产物在本机启动报"找不到 dll"（apphost 未正常 bundle），改用非单文件发布输出到 `dist/run`，日常运行更稳
+- 本机 NuGet 默认无源，publish/restore 需显式指定 `--source https://api.nuget.org/v3/index.json`
+
+### 验证结果
+
+- 临时验证（DryRun + 实际导出）通过：205 个文档导出 197 个成功，875 个文件（205 md + 670 图片），56.5 MB，耗时 598 秒
+- 8 个失败均为飞书侧限制：6 个文档类型不支持 API 导出、2 个文件名超 64 字符（Windows 限制）
+- 上库验证见文末「上库验证（2026-09-01 执行）」小节
+
+### 踩坑记录
+
+- 飞书权限生效需完整流程，仅"权限管理页开通"不生效：开通权限（如 `drive:export:readonly`）→ 创建版本提交发布 → 企业管理员审批通过 → 机器人添加为知识库成员（管理员/编辑）。缺一返回 99991672
+- Windows PowerShell 5.1 要求 .ps1 为 UTF-8 with BOM，否则中文注释按 GBK 解析导致语法错误
+
+### 上库验证（2026-09-01 执行）
+
+| 步骤 | 结果 |
+|---|---|
+| 干净构建（清 bin/obj → restore → Release build） | ✅ 零警告 |
+| 全量单元测试（Release 配置） | ✅ 37/37（49ms） |
+| 覆盖率收集模式测试 | ✅ 37/37 + cobertura XML |
+| Release 发布版完整导出（无参，读 config.json + credentials.local.json） | ✅ ExitCode 0，875/875 文件基线一致 |
+
+### 变更统计
+
+```
+15 files changed, 1220 insertions(+), 133 deletions(-)
+```
+
+新增：change.log / run.ps1 / config.json / coverage-report.ps1 / feishu-doc-export.Tests（4 文件）
+修改：.gitignore / readme.md / GlobalConfig.cs / Program.cs / FeiShuHttpApiCaller.cs / feishu-doc-export.csproj / feishu-doc-export.sln
+
+### 不入库清单（gitignore 保护）
+
+credentials.local.json、dist/、exported/、TestResults/、coveragereport/、.vscode/、run.log/run.err
+
+### Commit Message
+
+```
+feat: 凭证配置化与错误诊断增强，新增单元测试及覆盖率基建
+
+- 源码修复：Aspose License 路径兼容 Windows、--apiEndpoint 必填误判、
+  导出失败静默跳过（暴露权限错误根因）、日志 UTF-8 输出
+- 凭证管理：config.json（上库模板）+ credentials.local.json（本地，gitignore）
+  三源合并，exe 原生无参运行
+- 权限错误自助指引：99991672/1310213/1254004 自动打印排查步骤与直达链接
+- 单元测试：xUnit 项目 37 用例（md 后处理/路径映射/配置合并），
+  修复跨类并行静态状态竞争
+- 代码覆盖率：coverlet + ReportGenerator，核心逻辑类 100%
+- 文档：readme 补本地编译/权限清单/凭证管理/单元测试/覆盖率章节，
+  新增 change.log
+```

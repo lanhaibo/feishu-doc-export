@@ -1,4 +1,4 @@
-﻿using feishu_doc_export.Dtos;
+using feishu_doc_export.Dtos;
 using feishu_doc_export.Helper;
 using Newtonsoft.Json;
 using System;
@@ -260,9 +260,39 @@ namespace feishu_doc_export.HttpApi
                     string message = $"无阅读或导出权限，已忽略，请手动下载。飞书服务端响应数据为：{responseData}";
                     throw new CustomException(message, 1069902);
                 }
+
+                // 其他错误码：打印响应数据，避免静默 return null 导致无任何日志
+                LogHelper.LogError($"创建导出任务失败，token={token}，type={type}，飞书服务端响应数据为：{responseData}");
+                PrintPermissionGuide(responseData);
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// 权限类错误的自助排查指引（含权限开通直达链接）
+        /// </summary>
+        private static void PrintPermissionGuide(string responseData)
+        {
+            if (string.IsNullOrEmpty(responseData))
+            {
+                return;
+            }
+
+            if (responseData.Contains("99991672"))
+            {
+                string authUrl = $"https://open.feishu.cn/app/{GlobalConfig.AppId}/auth?q=wiki:wiki:readonly,drive:export:readonly,drive:drive:readonly,docx:document:readonly";
+                LogHelper.LogWarn("检测到应用权限不足（99991672），请依次排查：");
+                LogHelper.LogWarn($"  1. 打开链接一键勾选开通权限：{authUrl}");
+                LogHelper.LogWarn("  2. 在开发者后台「版本管理与发布」创建版本并提交发布，等待企业管理员审批通过（仅开通权限不生效）");
+                LogHelper.LogWarn("  3. 在飞书客户端知识库「设置 → 成员与权限」中，将应用机器人添加为成员（管理员或编辑）");
+                return;
+            }
+
+            if (responseData.Contains("1310213") || responseData.Contains("1254004"))
+            {
+                LogHelper.LogWarn("检测到文档级授权不足（1310213/1254004）：应用需被添加为目标文档的文档应用。请在该文档页面右上角「···」→「…更多」→「添加文档应用」中搜索并添加当前应用。");
+            }
         }
 
         public async Task<ExportTaskResultDto> QueryExportTaskResult(string ticket, string token)
