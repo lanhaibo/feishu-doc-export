@@ -2,11 +2,13 @@
 
 ## 2026-09-01 v0.1.0
 
-发布地址：[feishu-doc-export v0.1.0](https://github.com/lanhaibo/feishu-doc-export/releases/tag/0.1.0)（上传 `feishu-doc-export-win-x64.zip` 后，tag 打 `0.1.0` 即出现）
+发布地址：[feishu-doc-export v0.1.0](https://github.com/lanhaibo/feishu-doc-export/releases/tag/0.1.0)（上传 win-x64 + linux-x64 发布包后，tag 打 `0.1.0` 即出现）
 
 > 本次是 v0.0.4（2023-09）时隔近三年后的**首个大版本更新**，4 项核心改动，**强烈建议升级**：Aspose.Words（评估版有水印/截断）彻底替换为 DocSharp.Docx（MIT 无水印）、文件名超长不再失败、14 处失败结构化采集 + 每次导出自动生成离线 HTML 报告。
 >
-> 📦 发布产物（自包含单文件 + 裁剪）：本版本 win-x64 自包含单文件裁剪发布 `dotnet publish -r win-x64 -p:PublishSingleFile=true -p:PublishTrimmed=true` 实测为 **26.1 MB / 2 个文件**（`feishu-doc-export.exe` + `.pdb`），压成 zip 后 **10.2 MB / 1 个文件**（`feishu-doc-export-win-x64.zip`，10,744,011 字节）。
+> 📦 发布产物（自包含单文件 + 裁剪）：
+> - **win-x64**：`dotnet publish -r win-x64 -p:PublishSingleFile=true -p:PublishTrimmed=true` 实测 **26.1 MB / 2 文件**（`feishu-doc-export.exe` + `.pdb`），压成 zip 后 **10.2 MB**（`feishu-doc-export-win-x64.zip`，10,744,011 字节）。
+> - **linux-x64**：`dotnet publish -r linux-x64 -p:PublishSingleFile=true -p:PublishTrimmed=true` 实测 **29 MB / 1 文件**（`feishu-doc-export`），压成 tar.gz 后 **11 MB**（`feishu-doc-export-linux-x64.tar.gz`，11,559,745 字节）。真实知识库导出验收通过：207 md / 35 MB / 耗时 15 分钟。
 >
 > ⚠ 对比口径说明：v0.0.4 的发布规格是 ~30 MB / 60+ 文件（自包含但非单文件、非裁剪，Aspose 带 SkiaSharp 等图形组件），**两者打包策略不同**——Aspose→DocSharp 的真实代码瘦身收益约 **发布 DLL 数减少一半左右**；但为了获得"一个 exe 直接跑"的用户体验，本版本改用 PublishSingleFile + PublishTrimmed，体积下降主要来自这两项打包策略。
 

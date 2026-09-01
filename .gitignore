@@ -405,6 +405,7 @@ FodyWeavers.xsd
 # Local credentials & export outputs (do not commit)
 credentials.local.json
 exported/
+doc/
 run.err
 run.log
 
