@@ -67,9 +67,11 @@
 
 - windows-x64系统，下载`feishu-doc-export-win-x64.zip`
 - mac-osx-x64系统，下载`feishu-doc-export-mac-osx-x64.zip`
-- linux-x64系统，下载`feishu-doc-export-linux-x64.zip`
+- linux-x64系统，下载`feishu-doc-export-linux-x64.tar.gz`
 
-下载并解压即可得到程序可执行文件，windows环境的可执行文件为`feishu-doc-export.exe`，`linux`和`mac`环境的可执行文件为`feishu-doc-export`没有后缀。
+下载并解压即可得到程序可执行文件：
+- Windows：`feishu-doc-export.exe`（双击或命令行运行）
+- macOS / Linux：`feishu-doc-export`（无后缀，解压后需 `chmod +x` 授权首次执行）
 
 ### 命令行执行
 
@@ -98,17 +100,24 @@
   # win 导出个人空间文档 将文档保存为markdown文档
   ./feishu-doc-export.exe --appId=xxx --appSecret=xxx --saveType=md --exportPath=E:\temp\test --type=cloudDoc --folderToken=xxx
   ```
-- Linux环境和mac环境
+- Linux / macOS 环境
 
   \*\*注意！！！\*\*首次使用时需要将文件授权为可执行文件
   ```shell
-  # 将文件授权为可执行文件
-  sudo chmod +x ./feishu-doc-export
+  # Linux 解压并授权
+  tar -xzf feishu-doc-export-linux-x64.tar.gz
+  chmod +x ./feishu-doc-export
+
+  # macOS 解压并授权
+  unzip feishu-doc-export-mac-osx-x64.zip
+  chmod +x ./feishu-doc-export
   ```
-  执行时最好使用`sudo`，否则可能出现权限不足，导致在保存文档时无法创建文件目录
+  执行命令（**不需要 sudo**，除非你导出到系统受保护目录如 `/var/log` 等）：
   ```shell
-  # 执行不指定知识库的导出
-  sudo ./feishu-doc-export --appId=111111 --appSecret=222222 --exportPath=/home/ubuntu/feishu-document
+  # Linux / macOS 执行（指定知识库）
+  ./feishu-doc-export --appId=111111 --appSecret=222222 --spaceId=333333 --exportPath=./doc --saveType=md
+  # Linux / macOS 执行（不指定知识库）
+  ./feishu-doc-export --appId=111111 --appSecret=222222 --exportPath=./doc
   ```
 
 执行效果图如下：
@@ -119,9 +128,9 @@
 
 1. 第一步，（win，mac）双击运行程序，输入飞书自建应用的配置，并输入文档要导出的目录位置。
 
-   `mac`和`linux`仍需执行命令`sudo chmod +x ./feishu-doc-export`来将文件设置为可执行文件。
+   `mac`和`linux`仍需执行命令`chmod +x ./feishu-doc-export`来将文件设置为可执行文件。
 
-   `mac`可能会出现不受信任的执行程序，需要手动覆盖“隐私与安全性”设置中的设置。`linux`则只能通过命令行输入`.\feishu-doc-export`而不带参数的方式执行
+   `mac`可能会出现不受信任的执行程序，需要手动覆盖“隐私与安全性”设置中的设置。`linux`可通过命令行输入`./feishu-doc-export`而不带参数的方式执行
 
    ![feishuexport\_1](https://github.com/lanhaibo/feishu-doc-export/assets/84184815/cd8b8ab1-ec46-4d19-8844-794e58c305e8)
 2. 第二步，选择知识库后自动导出
