@@ -66,6 +66,7 @@ jobs:
           fi
 
       - name: Verify artifact
+        shell: bash
         run: |
           ls -lh ${{ matrix.artifact_name }}
 
