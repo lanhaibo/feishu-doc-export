@@ -11,6 +11,10 @@ on:
         required: true
         default: '0.1.0'
 
+# 允许工作流写入仓库内容（创建 Release）
+permissions:
+  contents: write
+
 env:
   DOTNET_VERSION: '6.0.x'
   NUGET_SOURCE: 'https://api.nuget.org/v3/index.json'
