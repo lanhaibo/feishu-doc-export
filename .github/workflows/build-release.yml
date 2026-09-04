@@ -1,0 +1,97 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [main]
+    tags: ['0.*']
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '6.0.x'
+  NUGET_SOURCE: 'https://api.nuget.org/v3/index.json'
+  PROJECT_PATH: 'src/feishu-doc-export/feishu-doc-export.csproj'
+  SOLUTION_PATH: 'src/feishu-doc-export.sln'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            runtime: linux-x64
+            artifact_name: feishu-doc-export-linux-x64.tar.gz
+          - os: windows-latest
+            runtime: win-x64
+            artifact_name: feishu-doc-export-win-x64.zip
+          - os: macos-latest
+            runtime: osx-x64
+            artifact_name: feishu-doc-export-osx-x64.tar.gz
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore dependencies
+        run: dotnet restore ${{ env.SOLUTION_PATH }} --source ${{ env.NUGET_SOURCE }}
+
+      - name: Build
+        run: dotnet build ${{ env.SOLUTION_PATH }} -c Release --no-restore -v minimal
+
+      - name: Test
+        run: dotnet test src/feishu-doc-export.Tests/feishu-doc-export.Tests.csproj -c Release --no-build -v minimal
+
+      - name: Publish ${{ matrix.runtime }}
+        run: |
+          dotnet publish ${{ env.PROJECT_PATH }} \
+            -c Release \
+            -r ${{ matrix.runtime }} \
+            -o publish/${{ matrix.runtime }} \
+            --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:PublishTrimmed=true \
+            --no-restore
+
+      - name: Package artifact
+        shell: bash
+        run: |
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            7z a ${{ matrix.artifact_name }} publish/${{ matrix.runtime }}/*
+          else
+            tar -czf ${{ matrix.artifact_name }} -C publish/${{ matrix.runtime }} .
+          fi
+
+      - name: Verify artifact
+        run: |
+          ls -lh ${{ matrix.artifact_name }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_name }}
+          retention-days: 1
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: List artifacts
+        run: ls -lh
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: '*.zip,*.tar.gz'
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
