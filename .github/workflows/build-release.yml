@@ -45,6 +45,7 @@ jobs:
         run: dotnet test src/feishu-doc-export.Tests/feishu-doc-export.Tests.csproj -c Release --no-build -v minimal
 
       - name: Publish ${{ matrix.runtime }}
+        shell: bash
         run: |
           dotnet publish ${{ env.PROJECT_PATH }} \
             -c Release \
